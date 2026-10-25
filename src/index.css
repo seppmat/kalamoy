@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-cream font-sans text-ink antialiased;
+    overflow-x: hidden;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-serif;
+  }
+  /* Cegah zoom otomatis iOS saat fokus ke input */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+  :focus-visible {
+    outline: 2px solid #a9572b;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-caramel px-6 text-base font-semibold text-card shadow-lift transition duration-200 hover:-translate-y-0.5 hover:bg-[#954a22] active:translate-y-0 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-ghost {
+    @apply inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-line bg-card px-5 text-sm font-semibold text-ink transition duration-200 hover:bg-sand active:scale-[0.97];
+  }
+  .field {
+    @apply w-full rounded-xl border border-line bg-card px-4 py-3 text-ink placeholder:text-muted/60 transition focus:border-caramel focus:outline-none focus:ring-2 focus:ring-caramel/20;
+  }
+  .field-error {
+    @apply border-red-400 focus:border-red-500 focus:ring-red-200;
+  }
+}
+
+/* Hormati preferensi pengguna yang mengurangi animasi */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
