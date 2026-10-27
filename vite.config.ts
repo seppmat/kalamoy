@@ -4,5 +4,5 @@ import react from '@vitejs/plugin-react'
 // base: './' membuat build bisa dipakai di Vercel, GitHub Pages (subfolder), maupun custom domain.
 export default defineConfig({
   plugins: [react()],
-  base: 'http://kalamoy.store',
+  base: 'https://github.com/seppmat/kalamoy',
 })
