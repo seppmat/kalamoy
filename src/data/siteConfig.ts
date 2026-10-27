@@ -34,7 +34,7 @@ export const siteConfig = {
 
   // ---------- WHATSAPP ----------
   // PLACEHOLDER: ganti dengan nomor asli sebelum dipublikasikan!
-  whatsappNumber: '6285856168691',
+  whatsappNumber: '6288247423301',
 
   // ---------- PENYIMPANAN PESANAN (Google Sheets) ----------
   // Tempel URL Web App dari Google Apps Script di sini (berakhiran /exec).
