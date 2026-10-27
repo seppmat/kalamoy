@@ -18,6 +18,8 @@ export interface FormValues {
   area: DeliveryArea
   address: string
   note: string
+  /** Kolom jebakan bot (disembunyikan dari manusia). Harus selalu kosong. */
+  website: string
 }
 
 export interface OrderCalc {

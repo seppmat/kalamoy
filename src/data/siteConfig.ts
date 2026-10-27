@@ -21,9 +21,9 @@ export const siteConfig = {
     name: 'Kalamoy',
     wordmark: 'kalamoy.',
     tagline: 'Premium Quesillo',
-    badge: 'Student Project',
-    sectionBadge: 'Kalamoy',
-    footerText: `It's Kalamoy Time!`,
+    badge: 'Usaha Kecil-Kecilan',
+    sectionBadge: 'Proyek Wirausaha Mahasiswa',
+    footerText: 'Proyek Kewirausahaan Mahasiswa',
   },
 
   // ---------- GAMBAR (nama file saja, di folder public/images/) ----------
@@ -35,6 +35,13 @@ export const siteConfig = {
   // ---------- WHATSAPP ----------
   // PLACEHOLDER: ganti dengan nomor asli sebelum dipublikasikan!
   whatsappNumber: '6285856168691',
+
+  // ---------- PENYIMPANAN PESANAN (Google Sheets) ----------
+  // Tempel URL Web App dari Google Apps Script di sini (berakhiran /exec).
+  // Panduan: README.md bagian "Menyimpan pesanan ke Google Sheets".
+  // Dikosongkan = pesanan TIDAK dikirim ke Sheet (website tetap berjalan normal).
+  // Catatan: URL ini publik dan bukan rahasia; pengamannya ada di skrip Apps Script.
+  ordersEndpoint: 'https://script.google.com/macros/s/AKfycbwJVidl1c9b4XcZfLCI7w_Do1UJVdC-8eHWXFFvjqMzhUuYHgJIs3171wWrawlEze8iuQ/exec',
 
   // ---------- TEKS HERO ----------
   hero: {
@@ -50,8 +57,8 @@ export const siteConfig = {
 
   // ---------- TEKS FORM ----------
   form: {
-    title: 'Formulir Pemesanan',
-    subtitle: 'Pesan langsung dengan disini!',
+    title: 'Formulir Pemesanan Cepat',
+    subtitle: 'Pesan sekarang!',
   },
 
   storageNote: 'Kalamoy tahan hingga 5 hari dalam kulkas bersuhu 2°C – 5°C. Nikmati selagi dingin!',

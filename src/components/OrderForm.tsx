@@ -67,7 +67,7 @@ export default function OrderForm({ values, order, onChange, onSubmit }: OrderFo
             autoComplete="name"
             autoCapitalize="words"
             maxLength={60}
-            placeholder="Nama Anda (cth: Sarah Amelia)"
+            placeholder="Nama Anda (cth: Aurel Adventus)"
             value={values.name}
             onChange={(e) => update({ name: e.target.value })}
             aria-invalid={Boolean(errors.name)}
@@ -336,6 +336,21 @@ export default function OrderForm({ values, order, onChange, onSubmit }: OrderFo
             ? 'Belum ada pembayaran. Pengantaran dikonfirmasi dulu lewat WhatsApp sebelum kamu membayar.'
             : 'Belum ada pembayaran yang diproses. Kamu akan melihat ringkasan & QRIS di langkah berikutnya.'}
         </p>
+      </div>
+
+      {/* Kolom jebakan bot: tidak terlihat & tidak bisa difokus oleh manusia (sengaja di akhir form
+          supaya tidak memengaruhi jarak antar bagian). */}
+      <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+        <label htmlFor="website">Jangan diisi</label>
+        <input
+          id="website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={values.website}
+          onChange={(e) => onChange({ website: e.target.value })}
+        />
       </div>
     </form>
   )

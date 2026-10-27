@@ -10,6 +10,7 @@ import { defaultFulfillmentId } from './data/products'
 import { siteConfig } from './data/siteConfig'
 import { buildOrder, type FormValues } from './utils/order'
 import { generateOrderRef } from './utils/orderRef'
+import { saveOrder } from './utils/saveOrder'
 import { scrollToId } from './utils/scroll'
 import { normalizeIndonesianPhone } from './utils/validation'
 
@@ -23,6 +24,7 @@ const initialValues: FormValues = {
   area: '',
   address: '',
   note: '',
+  website: '',
 }
 
 export default function App() {
@@ -75,7 +77,10 @@ export default function App() {
                   values={values}
                   order={order}
                   onChange={(patch) => setValues((prev) => ({ ...prev, ...patch }))}
-                  onSubmit={() => goTo('payment')}
+                  onSubmit={() => {
+                    saveOrder('submit', values, orderRef)
+                    goTo('payment')
+                  }}
                 />
 
                 {/* Ringkasan live — hanya di layar lebar; di HP total tampil di atas tombol */}

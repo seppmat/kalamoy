@@ -18,7 +18,8 @@ import {
   isWhatsAppConfigured,
 } from '../utils/generateWhatsAppUrl'
 import type { FormValues, OrderCalc } from '../utils/order'
-import { buildReceiptData, buildReceiptText, type ReceiptData } from '../utils/receipt'
+import { buildReceiptData, type ReceiptData } from '../utils/receipt'
+import { saveOrder } from '../utils/saveOrder'
 import { scrollToId } from '../utils/scroll'
 import OrderSummary from './OrderSummary'
 import Receipt from './Receipt'
@@ -61,6 +62,8 @@ export default function QrisPayment({ values, order, phone, orderRef, onBack, on
   }
 
   function makeReceipt() {
+    // Catat ke Sheet bahwa pelanggan menekan "Saya Sudah Bayar" (bukan bukti bayar; penjual tetap memverifikasi).
+    saveOrder('paid', values, orderRef)
     setReceipt(
       buildReceiptData({
         orderRef,
@@ -78,8 +81,8 @@ export default function QrisPayment({ values, order, phone, orderRef, onBack, on
   if (phase === 'receipt' && receipt) {
     return (
       <div>
-        <Banner title="Nota sudah dibuat!" text="Kirim nota & bukti bayar ke WhatsApp supaya pesananmu kami proses." />
-        <Receipt data={receipt} whatsappUrl={buildWhatsAppUrl(buildReceiptText(receipt))} onNewOrder={onNewOrder} />
+        <Banner title="Nota sudah dibuat!" text="Kirim gambar nota & bukti bayar ke WhatsApp supaya pesananmu kami proses." />
+        <Receipt data={receipt} chatUrl={buildWhatsAppUrl()} onNewOrder={onNewOrder} />
       </div>
     )
   }
@@ -215,7 +218,7 @@ export default function QrisPayment({ values, order, phone, orderRef, onBack, on
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-caramel" aria-hidden="true" />
               <p>
                 <strong>Nominal harus sama persis</strong> dengan total {formatCurrency(order.total)}. Tampilnya
-                QRIS dan nota bukan bukti pembayaran - pesanan diproses setelah penjual memeriksa bukti bayarmu
+                QRIS dan nota bukan bukti pembayaran, pesanan diproses setelah penjual memeriksa bukti bayarmu
                 secara manual.
               </p>
             </div>

@@ -73,36 +73,6 @@ function fulfillmentText(d: ReceiptData): string {
 export const RECEIPT_STATUS = 'MENUNGGU VERIFIKASI PEMBAYARAN'
 export const RECEIPT_FOOTER = `Nota dibuat otomatis dari website ${siteConfig.brand.name}. Pesanan dianggap lunas setelah pembayaran dikonfirmasi oleh ${siteConfig.brand.name} lewat WhatsApp.`
 
-/** Versi teks nota — jadi isi pesan WhatsApp. */
-export function buildReceiptText(d: ReceiptData): string {
-  const line = '━━━━━━━━━━━━━━'
-  const lines = [
-    `🧾 *NOTA PESANAN ${siteConfig.brand.name.toUpperCase()}*`,
-    siteConfig.brand.tagline,
-    line,
-    `No. Pesanan: ${d.orderRef}`,
-    `Tanggal: ${formatReceiptDate(d.createdAt)}`,
-    `Nama: ${d.name}`,
-    `WhatsApp: +${d.phone}`,
-    line,
-    `*${d.productName}*`,
-    `${d.quantity} ${productInfo.unitName} × ${formatCurrency(d.unitPrice)} = ${formatCurrency(d.subtotal)}`,
-    'Sendok: Gratis',
-    `Pengambilan: ${fulfillmentText(d)}`,
-  ]
-  if (d.address) lines.push(`Alamat: ${d.address}`)
-  if (d.note) lines.push(`Catatan: ${d.note}`)
-  lines.push(
-    line,
-    `*TOTAL: ${formatCurrency(d.total)}*`,
-    'Metode: QRIS',
-    `Status: ${RECEIPT_STATUS.charAt(0) + RECEIPT_STATUS.slice(1).toLowerCase()} ⏳`,
-    line,
-    `Halo ${siteConfig.brand.name}! Saya sudah membayar via QRIS sesuai total di atas. Bukti bayar saya lampirkan di chat ini ya. Terima kasih 🙏`,
-  )
-  return lines.join('\n')
-}
-
 /* ------------------------------------------------------------------ */
 /*  Gambar nota (PNG) digambar dengan <canvas> — tanpa library tambahan */
 /* ------------------------------------------------------------------ */
