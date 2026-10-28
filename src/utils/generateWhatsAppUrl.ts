@@ -48,3 +48,30 @@ export function generateDeliveryRequestMessage(p: DeliveryRequestPayload): strin
   lines.push('', 'Saya akan membayar setelah ada konfirmasi dari kamu. Terima kasih! 🙏')
   return lines.join('\n')
 }
+
+export interface PaymentConfirmPayload {
+  orderRef: string
+  name: string
+  phone: string
+  order: OrderCalc
+}
+
+/** Pesan konfirmasi pembayaran: dikirim SETELAH pelanggan membayar & membuat nota. */
+export function generatePaymentConfirmMessage(p: PaymentConfirmPayload): string {
+  const { order } = p
+  const lines = [
+    `Halo ${siteConfig.brand.name}! 🍮`,
+    `Saya sudah melakukan pembayaran untuk pesanan berikut:`,
+    '',
+    `*No. Pesanan:* ${p.orderRef}`,
+    `*Nama:* ${p.name.trim()}`,
+    `*WhatsApp:* +${p.phone}`,
+    `*Pesanan:* ${order.product.name} — ${order.quantity} ${productInfo.unitName} × ${formatCurrency(order.unitPrice)}`,
+    `*Total:* ${formatCurrency(order.total)}`,
+    '',
+    '📎 *Nota & bukti transfer terlampir di chat ini.*',
+    '',
+    'Mohon diverifikasi ya. Terima kasih! 🙏',
+  ]
+  return lines.join('\n')
+}

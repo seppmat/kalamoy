@@ -15,6 +15,7 @@ import { imageUrl } from '../utils/assetUrl'
 import {
   buildWhatsAppUrl,
   generateDeliveryRequestMessage,
+  generatePaymentConfirmMessage,
   isWhatsAppConfigured,
 } from '../utils/generateWhatsAppUrl'
 import type { FormValues, OrderCalc } from '../utils/order'
@@ -79,10 +80,16 @@ export default function QrisPayment({ values, order, phone, orderRef, onBack, on
   }
 
   if (phase === 'receipt' && receipt) {
+    const confirmText = generatePaymentConfirmMessage({
+      orderRef,
+      name: values.name.trim(),
+      phone,
+      order,
+    })
     return (
       <div>
         <Banner title="Nota sudah dibuat!" text="Kirim gambar nota & bukti bayar ke WhatsApp supaya pesananmu kami proses." />
-        <Receipt data={receipt} chatUrl={buildWhatsAppUrl()} onNewOrder={onNewOrder} />
+        <Receipt data={receipt} chatUrl={buildWhatsAppUrl(confirmText)} onNewOrder={onNewOrder} />
       </div>
     )
   }

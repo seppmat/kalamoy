@@ -57,7 +57,7 @@ export const siteConfig = {
 
   // ---------- TEKS FORM ----------
   form: {
-    title: 'Formulir Pemesanan Cepat',
+    title: 'Formulir Pemesanan',
     subtitle: 'Pesan sekarang!',
   },
 

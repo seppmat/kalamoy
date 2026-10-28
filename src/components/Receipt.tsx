@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { Download, Hourglass, MessageCircle, Plus, Send } from 'lucide-react'
 import { siteConfig } from '../data/siteConfig'
 import { renderReceiptPng, type ReceiptData } from '../utils/receipt'
+import ConfirmModal from './ConfirmModal'
 
 interface ReceiptProps {
   data: ReceiptData
-  /** Link chat WhatsApp penjual TANPA teks bawaan (yang dikirim cukup gambar nota). */
+  /** Link chat WhatsApp penjual dengan teks konfirmasi pembayaran. */
   chatUrl: string
   onNewOrder: () => void
 }
@@ -14,7 +15,7 @@ export default function Receipt({ data, chatUrl, onNewOrder }: ReceiptProps) {
   const [file, setFile] = useState<File | null>(null)
   const [imgUrl, setImgUrl] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
-  const [canShareFile, setCanShareFile] = useState(false)
+  const [showModal, setShowModal] = useState(false)
 
   const fileName = `nota-${siteConfig.brand.name.toLowerCase()}-${data.orderRef}.png`
 
@@ -29,11 +30,6 @@ export default function Receipt({ data, chatUrl, onNewOrder }: ReceiptProps) {
         url = URL.createObjectURL(blob)
         setFile(f)
         setImgUrl(url)
-        try {
-          setCanShareFile(Boolean(navigator.canShare?.({ files: [f] })))
-        } catch {
-          setCanShareFile(false)
-        }
       })
       .catch(() => !cancelled && setFailed(true))
 
@@ -54,24 +50,12 @@ export default function Receipt({ data, chatUrl, onNewOrder }: ReceiptProps) {
   }
 
   /**
-   * Mengirim GAMBAR nota saja.
-   *  - HP (Web Share API): membuka menu bagikan dengan gambar terlampir; pelanggan memilih WhatsApp
-   *    lalu chat Kalamoy.
-   *  - Desktop / browser tanpa dukungan: gambar diunduh dan chat WhatsApp Kalamoy dibuka;
-   *    pelanggan melampirkan gambar yang baru diunduh.
-   * Catatan: link wa.me tidak bisa melampirkan gambar secara otomatis, jadi pelanggan tetap menekan Kirim.
+   * Mengirim nota ke WhatsApp:
+   *  1. Gambar nota otomatis terunduh ke perangkat.
+   *  2. WhatsApp terbuka langsung ke chat nomor penjual (wa.me) dengan teks konfirmasi.
+   *  3. Pelanggan tinggal lampirkan gambar nota + bukti bayar yang sudah terunduh, lalu kirim.
    */
-  async function sendReceipt() {
-    if (!file) return
-    if (canShareFile) {
-      try {
-        await navigator.share({ files: [file], title: `Nota ${siteConfig.brand.name}` })
-        return
-      } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') return // dibatalkan pengguna
-        // gagal karena hal lain → pakai jalur unduh + buka chat
-      }
-    }
+  function sendReceipt() {
     triggerDownload()
     window.open(chatUrl, '_blank', 'noopener,noreferrer')
   }
@@ -103,14 +87,12 @@ export default function Receipt({ data, chatUrl, onNewOrder }: ReceiptProps) {
       </div>
 
       <div className="space-y-3">
-        <button type="button" onClick={sendReceipt} disabled={!file} className="btn-primary w-full">
+        <button type="button" onClick={() => setShowModal(true)} disabled={!file} className="btn-primary w-full">
           <Send className="h-5 w-5" aria-hidden="true" />
           Kirim Nota ke WhatsApp
         </button>
         <p className="text-center text-[11px] text-muted">
-          {canShareFile
-            ? `Pilih WhatsApp lalu chat ${siteConfig.brand.name}, kirim gambar nota, dan sertakan bukti bayar.`
-            : 'Gambar nota akan terunduh dan WhatsApp terbuka. Lampirkan gambar nota & bukti bayar, lalu tekan Kirim.'}
+          Gambar nota akan terunduh dan WhatsApp terbuka ke chat {siteConfig.brand.name}. Lampirkan gambar nota &amp; bukti bayar, lalu tekan Kirim.
         </p>
 
         <div className="grid grid-cols-2 gap-3">
@@ -136,6 +118,17 @@ export default function Receipt({ data, chatUrl, onNewOrder }: ReceiptProps) {
           Buat Pesanan Baru
         </button>
       </div>
+
+      {showModal && (
+        <ConfirmModal
+          orderRef={data.orderRef}
+          onConfirm={() => {
+            setShowModal(false)
+            sendReceipt()
+          }}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   )
 }

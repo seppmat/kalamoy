@@ -67,7 +67,7 @@ export default function OrderForm({ values, order, onChange, onSubmit }: OrderFo
             autoComplete="name"
             autoCapitalize="words"
             maxLength={60}
-            placeholder="Nama Anda (cth: Aurel Adventus)"
+            placeholder="Nama Anda (cth: Mohamad Roza)"
             value={values.name}
             onChange={(e) => update({ name: e.target.value })}
             aria-invalid={Boolean(errors.name)}
