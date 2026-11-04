@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mengarahkan ke Kalamoy...</title>
+    <script>
+      // Single Page Application Redirect for GitHub Pages
+      // Jika pengguna membuka /ulasan langsung, alihkan ke /?page=ulasan
+      var path = window.location.pathname.replace(/^\//, '').replace(/\/$/, '')
+      if (path.indexOf('ulasan') !== -1 || path.indexOf('review') !== -1) {
+        window.location.replace('/?page=ulasan' + (window.location.hash || ''))
+      } else {
+        window.location.replace('/' + (window.location.search || '') + (window.location.hash || ''))
+      }
+    </script>
+  </head>
+  <body>
+    <p>Mengarahkan...</p>
+  </body>
+</html>
