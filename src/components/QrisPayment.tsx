@@ -7,7 +7,6 @@ import {
   Download,
   ImageOff,
   MessageCircle,
-  ReceiptText,
 } from 'lucide-react'
 import { siteConfig } from '../data/siteConfig'
 import { formatCurrency } from '../utils/formatCurrency'
@@ -19,7 +18,7 @@ import {
   isWhatsAppConfigured,
 } from '../utils/generateWhatsAppUrl'
 import type { FormValues, OrderCalc } from '../utils/order'
-import { buildReceiptData, type ReceiptData } from '../utils/receipt'
+import { buildReceiptData, renderReceiptPng, type ReceiptData } from '../utils/receipt'
 import { saveOrder } from '../utils/saveOrder'
 import { scrollToId } from '../utils/scroll'
 import OrderSummary from './OrderSummary'
@@ -38,21 +37,19 @@ interface QrisPaymentProps {
 
 type Phase = 'request' | 'pay' | 'receipt'
 
-/**
- * ALUR
- *  - Ambil di lobby : pay -> receipt
- *  - Diantar        : request (ajukan via WhatsApp, JANGAN bayar dulu) -> pay -> receipt
- *
- * CATATAN PENTING:
- * Menampilkan QRIS dan membuat nota BUKAN bukti pembayaran. Versi ini tidak punya backend, jadi
- * status "lunas" tidak pernah ditandai otomatis — penjual memeriksa bukti bayar secara manual
- * lewat WhatsApp. Verifikasi otomatis butuh payment gateway + backend yang aman.
- */
-export default function QrisPayment({ values, order, phone, orderRef, onBack, onNewOrder }: QrisPaymentProps) {
+export default function QrisPayment({
+  values,
+  order,
+  phone,
+  orderRef,
+  onBack,
+  onNewOrder,
+}: QrisPaymentProps) {
   const isDelivery = order.fulfillment.requiresConfirmation
   const [phase, setPhase] = useState<Phase>(isDelivery ? 'request' : 'pay')
   const [receipt, setReceipt] = useState<ReceiptData | null>(null)
   const [qrisReady, setQrisReady] = useState(true)
+  const [isProcessing, setIsProcessing] = useState(false)
   const qrisSrc = imageUrl(siteConfig.images.qris)
 
   const address = isDelivery ? values.address.trim() : undefined
@@ -62,23 +59,63 @@ export default function QrisPayment({ values, order, phone, orderRef, onBack, on
     window.setTimeout(() => scrollToId('pesan'), 60)
   }
 
-  function makeReceipt() {
-    // Catat ke Sheet bahwa pelanggan menekan "Saya Sudah Bayar" (bukan bukti bayar; penjual tetap memverifikasi).
+  /**
+   * Alur 1-Klik:
+   *  1. Unduh nota PNG secara otomatis ke HP/laptop
+   *  2. Kirim update ke Google Sheets
+   *  3. Langsung buka WhatsApp tujuan dengan teks konfirmasi siap kirim
+   *  4. Tampilkan halaman ringkasan sukses
+   */
+  async function handleConfirmPayment() {
+    setIsProcessing(true)
+
+    // Catat ke Google Sheets bahwa pelanggan sudah bayar & menekan tombol konfirmasi
     saveOrder('paid', values, orderRef)
-    setReceipt(
-      buildReceiptData({
-        orderRef,
-        name: values.name.trim(),
-        phone,
-        note: values.note.trim(),
-        address,
-        order,
-        createdAt: new Date(),
-      }),
-    )
+
+    const receiptData = buildReceiptData({
+      orderRef,
+      name: values.name.trim(),
+      phone,
+      note: values.note.trim(),
+      address,
+      order,
+      createdAt: new Date(),
+    })
+    setReceipt(receiptData)
+
+    // Link WhatsApp
+    const confirmText = generatePaymentConfirmMessage({
+      orderRef,
+      name: values.name.trim(),
+      phone,
+      order,
+    })
+    const waUrl = buildWhatsAppUrl(confirmText)
+
+    // Render & Auto-Download Gambar Nota PNG
+    try {
+      const blob = await renderReceiptPng(receiptData)
+      const fileName = `nota-${siteConfig.brand.name.toLowerCase()}-${orderRef}.png`
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 2000)
+    } catch {
+      // Jika auto download terhalang di browser tertentu, tombol download manual tetap ada di layar berikutnya
+    }
+
+    // Langsung buka chat WhatsApp
+    window.open(waUrl, '_blank', 'noopener,noreferrer')
+
+    setIsProcessing(false)
     go('receipt')
   }
 
+  // Halaman setelah menekan konfirmasi (Receipt & Sukses)
   if (phase === 'receipt' && receipt) {
     const confirmText = generatePaymentConfirmMessage({
       orderRef,
@@ -88,35 +125,57 @@ export default function QrisPayment({ values, order, phone, orderRef, onBack, on
     })
     return (
       <div>
-        <Banner title="Nota sudah dibuat!" text="Kirim gambar nota & bukti bayar ke WhatsApp supaya pesananmu kami proses." />
-        <Receipt data={receipt} chatUrl={buildWhatsAppUrl(confirmText)} onNewOrder={onNewOrder} />
+        <Receipt
+          data={receipt}
+          chatUrl={buildWhatsAppUrl(confirmText)}
+          onNewOrder={onNewOrder}
+        />
       </div>
     )
   }
 
   const requestUrl = buildWhatsAppUrl(
-    generateDeliveryRequestMessage({ orderRef, name: values.name, phone, address: address ?? '', note: values.note, order }),
+    generateDeliveryRequestMessage({
+      orderRef,
+      name: values.name,
+      phone,
+      address: address ?? '',
+      note: values.note,
+      order,
+    }),
   )
 
   const steps = [
-    'Simpan gambar QRIS dengan tombol di bawah, atau scan langsung dari layar perangkat lain.',
-    'Buka aplikasi m-banking atau e-wallet yang mendukung QRIS, lalu pilih Scan / Upload QR.',
-    `Masukkan nominal sesuai total: ${formatCurrency(order.total)}.`,
-    'Setelah membayar, screenshot bukti bayarnya, lalu tekan "Saya Sudah Bayar" untuk membuat nota.',
+    'Scan gambar QRIS di bawah menggunakan m-banking atau e-wallet kamu.',
+    `Pastikan nominal transfer sesuai: ${formatCurrency(order.total)}.`,
+    'Screenshot / simpan bukti transfer dari aplikasi m-banking.',
+    'Tekan tombol "Kirim Bukti ke WhatsApp" di bawah. Nota otomatis terunduh dan WhatsApp akan langsung terbuka.',
   ]
 
   return (
     <div className="animate-fade-up">
       {phase === 'request' ? (
-        <Banner title="Pengantaran perlu dikonfirmasi" text="Jangan bayar dulu. Ajukan lewat WhatsApp, tunggu kami membalas." />
+        <Banner
+          title="Pengantaran perlu dikonfirmasi"
+          text="Jangan bayar dulu. Ajukan lewat WhatsApp, tunggu kami membalas."
+        />
       ) : (
-        <Banner title="Detail pesanan sudah siap!" text="Pesanan belum dibayar. Selesaikan pembayaran QRIS di bawah." />
+        <Banner
+          title="Selesaikan Pembayaran QRIS"
+          text={`Transfer sesuai total ${formatCurrency(order.total)}, lalu tekan tombol kirim bukti di bawah.`}
+        />
       )}
 
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <OrderSummary
           order={order}
-          customer={{ name: values.name.trim(), whatsapp: phone, note: values.note.trim(), orderRef, address }}
+          customer={{
+            name: values.name.trim(),
+            whatsapp: phone,
+            note: values.note.trim(),
+            orderRef,
+            address,
+          }}
         />
 
         {phase === 'request' ? (
@@ -165,7 +224,12 @@ export default function QrisPayment({ values, order, phone, orderRef, onBack, on
           </div>
         ) : (
           <div className="rounded-3xl border border-line bg-card p-5 shadow-soft sm:p-6">
-            <h2 className="text-xl font-bold text-caramel">Bayar dengan QRIS</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-caramel">Bayar dengan QRIS</h2>
+              <span className="rounded-full bg-honey/70 px-2.5 py-1 text-xs font-bold text-ink">
+                {formatCurrency(order.total)}
+              </span>
+            </div>
 
             <div className="mx-auto mt-4 flex aspect-square w-full max-w-[280px] items-center justify-center overflow-hidden rounded-2xl border border-line bg-white p-3">
               <SafeImage
@@ -198,7 +262,7 @@ export default function QrisPayment({ values, order, phone, orderRef, onBack, on
                 className="btn-ghost mt-4 w-full"
               >
                 <Download className="h-4 w-4" aria-hidden="true" />
-                Simpan QRIS
+                Simpan Gambar QRIS
               </a>
             ) : (
               <button type="button" disabled className="btn-ghost mt-4 w-full opacity-50">
@@ -206,9 +270,6 @@ export default function QrisPayment({ values, order, phone, orderRef, onBack, on
                 Simpan QRIS (belum tersedia)
               </button>
             )}
-            <p className="mt-2 text-center text-[11px] text-muted">
-              Jika tidak terunduh, tekan lama pada gambar QRIS lalu pilih “Simpan Gambar”.
-            </p>
 
             <ol className="mt-5 space-y-3 text-sm">
               {steps.map((text, i) => (
@@ -224,23 +285,27 @@ export default function QrisPayment({ values, order, phone, orderRef, onBack, on
             <div className="mt-5 flex gap-2.5 rounded-2xl bg-[#FBEAE0] p-4 text-xs leading-relaxed text-ink">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-caramel" aria-hidden="true" />
               <p>
-                <strong>Nominal harus sama persis</strong> dengan total {formatCurrency(order.total)}. Tampilnya
-                QRIS dan nota bukan bukti pembayaran, pesanan diproses setelah penjual memeriksa bukti bayarmu
-                secara manual.
+                💡 Setelah transfer, langsung tekan tombol di bawah ya! Nota otomatis terunduh dan kamu tinggal melampirkan screenshot bukti bayar di WhatsApp kami.
               </p>
             </div>
 
             {import.meta.env.DEV && !isWhatsAppConfigured() && <DevWhatsAppNote />}
 
-            <div className="mt-5 space-y-3">
-              <button type="button" onClick={makeReceipt} className="btn-primary w-full">
-                <ReceiptText className="h-5 w-5" aria-hidden="true" />
-                Saya Sudah Bayar
+            <div className="mt-6 space-y-3">
+              <button
+                type="button"
+                onClick={handleConfirmPayment}
+                disabled={isProcessing}
+                className="btn-primary w-full text-base py-3.5 shadow-md"
+              >
+                <MessageCircle className="h-5 w-5" aria-hidden="true" />
+                {isProcessing ? 'Menyiapkan Nota…' : 'Sudah Bayar? Kirim Bukti ke WhatsApp'}
               </button>
+
               <p className="text-center text-[11px] text-muted">
-                Tekan setelah pembayaran QRIS selesai. Nota berstatus “menunggu verifikasi” sampai kami
-                mengonfirmasi.
+                Nota otomatis terunduh &amp; WhatsApp langsung terbuka ke chat {siteConfig.brand.name}.
               </p>
+
               <button type="button" onClick={onBack} className="btn-ghost w-full">
                 <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                 Ubah Pesanan
