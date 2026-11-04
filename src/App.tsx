@@ -77,10 +77,14 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function navigateToHome() {
+  function navigateToHome(targetId?: string) {
     window.history.pushState({}, '', '/')
     setIsReview(false)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    if (targetId) {
+      window.setTimeout(() => scrollToId(targetId), 80)
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
   function goTo(next: Step) {

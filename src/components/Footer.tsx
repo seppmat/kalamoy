@@ -5,9 +5,18 @@ import { scrollToId } from '../utils/scroll'
 
 interface FooterProps {
   onGoToReview?: () => void
+  onOrderClick?: () => void
 }
 
-export default function Footer({ onGoToReview }: FooterProps) {
+export default function Footer({ onGoToReview, onOrderClick }: FooterProps) {
+  function handleBackToForm() {
+    if (onOrderClick) {
+      onOrderClick()
+    } else {
+      scrollToId('pesan')
+    }
+  }
+
   return (
     <footer className="border-t border-line bg-card">
       <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
@@ -20,7 +29,7 @@ export default function Footer({ onGoToReview }: FooterProps) {
             <button
               type="button"
               onClick={onGoToReview}
-              className="inline-flex min-h-[44px] items-center gap-1.5 text-caramel hover:text-ink font-semibold"
+              className="inline-flex min-h-[44px] items-center gap-1.5 font-semibold text-caramel hover:text-ink"
             >
               <Star className="h-4 w-4 fill-honey text-honey" aria-hidden="true" />
               Beri Ulasan
@@ -28,7 +37,7 @@ export default function Footer({ onGoToReview }: FooterProps) {
           ) : (
             <a
               href="/?page=ulasan"
-              className="inline-flex min-h-[44px] items-center gap-1.5 text-caramel hover:text-ink font-semibold"
+              className="inline-flex min-h-[44px] items-center gap-1.5 font-semibold text-caramel hover:text-ink"
             >
               <Star className="h-4 w-4 fill-honey text-honey" aria-hidden="true" />
               Beri Ulasan
@@ -47,7 +56,7 @@ export default function Footer({ onGoToReview }: FooterProps) {
 
           <button
             type="button"
-            onClick={() => scrollToId('pesan')}
+            onClick={handleBackToForm}
             className="inline-flex min-h-[44px] items-center gap-1.5 hover:text-ink"
           >
             Kembali ke Form

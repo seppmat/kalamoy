@@ -7,7 +7,7 @@ import Footer from './Footer'
 import Header from './Header'
 
 interface ReviewPageProps {
-  onBackToHome: () => void
+  onBackToHome: (targetId?: string) => void
 }
 
 const ratingLabels: Record<number, string> = {
@@ -52,13 +52,16 @@ export default function ReviewPage({ onBackToHome }: ReviewPageProps) {
 
   return (
     <>
-      <Header />
+      <Header
+        onOrderClick={() => onBackToHome('pesan')}
+        onLogoClick={() => onBackToHome()}
+      />
       <main className="min-h-screen px-4 py-10 sm:px-6 sm:py-16">
         <div className="mx-auto max-w-2xl">
           {/* Tombol Kembali */}
           <button
             type="button"
-            onClick={onBackToHome}
+            onClick={() => onBackToHome()}
             className="group mb-8 inline-flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2 text-xs font-semibold text-muted transition hover:border-caramel hover:text-caramel"
           >
             <ArrowLeft className="h-3.5 w-3.5 transition group-hover:-translate-x-0.5" />
@@ -86,7 +89,7 @@ export default function ReviewPage({ onBackToHome }: ReviewPageProps) {
               <div className="mt-8">
                 <button
                   type="button"
-                  onClick={onBackToHome}
+                  onClick={() => onBackToHome()}
                   className="btn-primary mx-auto inline-flex"
                 >
                   Kembali ke Beranda
@@ -239,7 +242,7 @@ export default function ReviewPage({ onBackToHome }: ReviewPageProps) {
           )}
         </div>
       </main>
-      <Footer />
+      <Footer onOrderClick={() => onBackToHome('pesan')} />
     </>
   )
 }
