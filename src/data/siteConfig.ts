@@ -61,5 +61,16 @@ export const siteConfig = {
     subtitle: 'Pesan sekarang!',
   },
 
+  // ---------- PENGATURAN PRE-ORDER ----------
+  // defaultOpen: status awal (buka/tutup) jika Google Sheets belum diset
+  preOrder: {
+    defaultOpen: true,
+    closedTitle: 'Kuota Pre-Order Batch Ini Sudah Terpenuhi 🍮',
+    closedSubtitle:
+      'Terima kasih banyak atas antusiasmenya! Saat ini dapur Kalamoy sedang fokus memproduksi pesanan yang masuk agar kualitasnya tetap fresh dan maksimal.',
+    nextBatchNote:
+      'Ingin tahu jadwal open PO batch selanjutnya atau cek sisa slot jika ada pembatalan? Hubungi kami langsung lewat WhatsApp ya!',
+  },
+
   storageNote: 'Kalamoy tahan hingga 5 hari dalam kulkas bersuhu 2°C – 5°C. Nikmati selagi dingin!',
 }

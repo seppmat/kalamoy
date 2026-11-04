@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { ArrowRight, Bike, Check, Info, MapPin, Minus, Plus, Store, User } from 'lucide-react'
-import { deliveryRules, fulfillmentOptions, product, productInfo } from '../data/products'
+import { deliveryRules, fulfillmentOptions, products, productInfo } from '../data/products'
 import { formatCurrency } from '../utils/formatCurrency'
 import type { FormValues, OrderCalc } from '../utils/order'
 import { validateForm, type FormErrors } from '../utils/validation'
@@ -122,24 +122,62 @@ export default function OrderForm({ values, order, onChange, onSubmit }: OrderFo
         )}
       </div>
 
-      {/* Produk (hanya satu, otomatis terpilih) */}
+      {/* Pilihan Varian Rasa Karamel */}
       <div>
-        <p className="mb-2 text-sm font-semibold">Produk</p>
-        <div className="flex min-h-[72px] items-center gap-3 rounded-2xl border border-caramel bg-[#FBF1E6] p-4 shadow-soft ring-1 ring-caramel/40">
-          <span
-            aria-hidden="true"
-            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-caramel text-card"
-          >
-            <Check className="h-3 w-3" strokeWidth={3} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">{product.name}</p>
-            <p className="mt-0.5 text-xs leading-snug text-muted">{product.description}</p>
-          </div>
-          <p className="shrink-0 whitespace-nowrap text-sm font-semibold text-caramel">
-            {formatCurrency(product.price)}
-            <span className="text-xs font-normal text-muted"> /{productInfo.unitName}</span>
+        <div className="mb-2 flex items-center justify-between">
+          <p id="variant-label" className="text-sm font-semibold">
+            Pilihan Varian Rasa <span className="text-caramel">*</span>
           </p>
+          <span className="text-xs text-muted">Pilih sesuai seleramu</span>
+        </div>
+
+        <div role="radiogroup" aria-labelledby="variant-label" className="grid gap-3 sm:grid-cols-2">
+          {products.map((p) => {
+            const isSelected = (values.productId || products[0].id) === p.id
+            return (
+              <button
+                key={p.id}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                onClick={() => update({ productId: p.id })}
+                className={`relative flex flex-col justify-between rounded-2xl border p-4 text-left transition-all ${
+                  isSelected
+                    ? 'border-caramel bg-[#FBF1E6] shadow-soft ring-2 ring-caramel/40'
+                    : 'border-line bg-card hover:border-toffee/60 hover:bg-sand/30'
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <span
+                      aria-hidden="true"
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors ${
+                        isSelected ? 'bg-caramel text-card' : 'border border-line bg-card'
+                      }`}
+                    >
+                      {isSelected && <Check className="h-3 w-3" strokeWidth={3} />}
+                    </span>
+                    <span className="rounded-full bg-honey/60 px-2.5 py-0.5 text-[10px] font-semibold text-ink">
+                      {p.tagline}
+                    </span>
+                  </div>
+
+                  <p className="mt-2 text-sm font-bold text-ink">{p.name}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted">{p.description}</p>
+                </div>
+
+                <div className="mt-3 border-t border-line/60 pt-2.5">
+                  <p className="text-[11px] leading-snug text-caramel/90">
+                    💡 <span className="font-medium">{p.suitability}</span>
+                  </p>
+                  <p className="mt-1.5 text-xs font-semibold text-ink">
+                    {formatCurrency(p.price)}
+                    <span className="text-[11px] font-normal text-muted"> /{productInfo.unitName}</span>
+                  </p>
+                </div>
+              </button>
+            )
+          })}
         </div>
       </div>
 

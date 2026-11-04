@@ -14,10 +14,6 @@ export function isOrdersEndpointConfigured(): boolean {
  *
  *  - 'submit' : saat pelanggan menekan "Lanjut" di form.
  *  - 'paid'   : saat pelanggan menekan "Saya Sudah Bayar" (BUKAN bukti bayar; penjual tetap memverifikasi).
- *
- * Yang dikirim hanya data isian. Total & status TIDAK dikirim karena dihitung dan ditentukan oleh server.
- * Browser tidak bisa membaca balasan Apps Script dengan andal (mode no-cors), jadi keberhasilan tidak
- * dapat dipastikan dari sini. Pelanggan tetap mengirim nota ke WhatsApp sebagai cadangan.
  */
 export function saveOrder(event: OrderEvent, values: FormValues, orderRef: string): void {
   if (!isOrdersEndpointConfigured()) return
@@ -33,6 +29,8 @@ export function saveOrder(event: OrderEvent, values: FormValues, orderRef: strin
     orderRef,
     name: values.name.trim(),
     phone,
+    productId: order.product.id,
+    productName: order.product.name,
     quantity: order.quantity,
     fulfillmentId: order.fulfillment.id,
     area: isDelivery ? values.area : '',
@@ -45,7 +43,6 @@ export function saveOrder(event: OrderEvent, values: FormValues, orderRef: strin
     void fetch(siteConfig.ordersEndpoint, {
       method: 'POST',
       mode: 'no-cors',
-      // text/plain termasuk jenis "sederhana": tidak memicu preflight CORS yang tidak didukung Apps Script.
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
       keepalive: true,
@@ -54,5 +51,84 @@ export function saveOrder(event: OrderEvent, values: FormValues, orderRef: strin
     })
   } catch {
     /* fetch tidak tersedia / diblokir */
+  }
+}
+
+export interface ReviewPayload {
+  name: string
+  variant: string
+  rating: number
+  comment: string
+}
+
+/**
+ * Mengirim ulasan pelanggan ke tab 'Ulasan' di Google Sheets.
+ */
+export function saveReview(data: ReviewPayload): Promise<boolean> {
+  if (!isOrdersEndpointConfigured()) {
+    return Promise.resolve(true)
+  }
+
+  const payload = {
+    event: 'review',
+    name: data.name.trim() || 'Anonim',
+    variant: data.variant,
+    rating: data.rating,
+    comment: data.comment.trim(),
+    createdAt: new Date().toISOString(),
+  }
+
+  return new Promise((resolve) => {
+    try {
+      void fetch(siteConfig.ordersEndpoint, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      })
+        .then(() => resolve(true))
+        .catch(() => resolve(true))
+    } catch {
+      resolve(true)
+    }
+  })
+}
+
+export interface PoStatusResult {
+  isOpen: boolean
+  message?: string
+}
+
+/**
+ * Memeriksa status Pre-Order dari Google Sheets tab 'Pengaturan'.
+ * Mengembalikan null jika gagal fetch (fallback ke default di siteConfig).
+ */
+export async function fetchPoStatus(): Promise<PoStatusResult | null> {
+  if (!isOrdersEndpointConfigured()) return null
+
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 4000) // timeout 4 detik
+
+    const res = await fetch(`${siteConfig.ordersEndpoint}?action=status`, {
+      method: 'GET',
+      signal: controller.signal,
+    })
+    clearTimeout(timer)
+
+    if (!res.ok) return null
+    const data = await res.json()
+
+    // Membaca boolean isOpen atau string "BUKA" / "TUTUP"
+    const statusStr = String(data.status || data.isOpen || '').trim().toLowerCase()
+    const isOpen = statusStr === 'true' || statusStr === 'buka' || statusStr === 'open'
+
+    return {
+      isOpen,
+      message: data.message,
+    }
+  } catch {
+    return null
   }
 }

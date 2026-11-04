@@ -1,16 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Zap } from 'lucide-react'
 import Footer from './components/Footer'
 import Header from './components/Header'
 import HeroSection from './components/HeroSection'
 import OrderForm from './components/OrderForm'
 import OrderSummary from './components/OrderSummary'
+import PreOrderClosedCard from './components/PreOrderClosedCard'
 import QrisPayment from './components/QrisPayment'
-import { defaultFulfillmentId } from './data/products'
+import ReviewPage from './components/ReviewPage'
+import { defaultFulfillmentId, products } from './data/products'
 import { siteConfig } from './data/siteConfig'
 import { buildOrder, type FormValues } from './utils/order'
 import { generateOrderRef } from './utils/orderRef'
-import { saveOrder } from './utils/saveOrder'
+import { fetchPoStatus, saveOrder } from './utils/saveOrder'
 import { scrollToId } from './utils/scroll'
 import { normalizeIndonesianPhone } from './utils/validation'
 
@@ -19,6 +21,7 @@ type Step = 'form' | 'payment'
 const initialValues: FormValues = {
   name: '',
   phone: '',
+  productId: products[0].id,
   quantity: 1,
   fulfillmentId: defaultFulfillmentId,
   area: '',
@@ -27,7 +30,21 @@ const initialValues: FormValues = {
   website: '',
 }
 
+function checkIsReviewRoute(): boolean {
+  if (typeof window === 'undefined') return false
+  const path = window.location.pathname.toLowerCase().replace(/\/$/, '')
+  const page = new URLSearchParams(window.location.search).get('page')
+  return (
+    path.endsWith('/ulasan') ||
+    path.endsWith('/review') ||
+    page === 'ulasan' ||
+    page === 'review'
+  )
+}
+
 export default function App() {
+  const [isReview, setIsReview] = useState<boolean>(checkIsReviewRoute)
+  const [isPoOpen, setIsPoOpen] = useState<boolean>(siteConfig.preOrder.defaultOpen)
   const [values, setValues] = useState<FormValues>(initialValues)
   const [step, setStep] = useState<Step>('form')
   // Nomor referensi hanya untuk sesi browser ini (tidak disimpan di server mana pun).
@@ -35,6 +52,36 @@ export default function App() {
 
   const order = useMemo(() => buildOrder(values), [values])
   const phone = normalizeIndonesianPhone(values.phone)
+
+  // Cek status PO secara berkala dari Google Sheets
+  useEffect(() => {
+    fetchPoStatus().then((result) => {
+      if (result) {
+        setIsPoOpen(result.isOpen)
+      }
+    })
+  }, [])
+
+  // Dukungan tombol Back/Forward browser untuk halaman ulasan
+  useEffect(() => {
+    function handlePopState() {
+      setIsReview(checkIsReviewRoute())
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  function navigateToReview() {
+    window.history.pushState({}, '', '/?page=ulasan')
+    setIsReview(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function navigateToHome() {
+    window.history.pushState({}, '', '/')
+    setIsReview(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   function goTo(next: Step) {
     setStep(next)
@@ -46,6 +93,11 @@ export default function App() {
     setValues(initialValues)
     setOrderRef(generateOrderRef())
     goTo('form')
+  }
+
+  // Jika halaman ulasan yang dibuka
+  if (isReview) {
+    return <ReviewPage onBackToHome={navigateToHome} />
   }
 
   return (
@@ -62,16 +114,25 @@ export default function App() {
                 {siteConfig.brand.sectionBadge}
               </span>
               <h2 className="mt-4 text-3xl font-bold text-caramel sm:text-4xl">
-                {step === 'form' ? siteConfig.form.title : 'Konfirmasi & Pembayaran'}
+                {!isPoOpen
+                  ? 'Status Pemesanan'
+                  : step === 'form'
+                    ? siteConfig.form.title
+                    : 'Konfirmasi & Pembayaran'}
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-muted sm:text-base">
-                {step === 'form'
-                  ? siteConfig.form.subtitle
-                  : 'Periksa pesananmu, ikuti langkah di bawah, lalu kirim nota ke WhatsApp.'}
+                {!isPoOpen
+                  ? 'Informasi kuota dan jadwal batch Kalamoy.'
+                  : step === 'form'
+                    ? siteConfig.form.subtitle
+                    : 'Periksa pesananmu, ikuti langkah di bawah, lalu kirim nota ke WhatsApp.'}
               </p>
             </div>
 
-            {step === 'form' || !phone ? (
+            {/* Jika PO sedang DITUTUP (Close Form) */}
+            {!isPoOpen ? (
+              <PreOrderClosedCard onGoToReview={navigateToReview} />
+            ) : step === 'form' || !phone ? (
               <div key="form" className="grid animate-fade-up gap-6 lg:grid-cols-[1.25fr_1fr] lg:items-start">
                 <OrderForm
                   values={values}
@@ -106,7 +167,7 @@ export default function App() {
           </div>
         </section>
       </main>
-      <Footer />
+      <Footer onGoToReview={navigateToReview} />
     </>
   )
 }

@@ -1,20 +1,45 @@
 /**
  * ============================================================
- *  DATA PRODUK  (nama, harga, aturan pengambilan — semua di sini)
+ *  DATA PRODUK & VARIAN KALAMOY
  * ============================================================
  *  Harga dalam Rupiah, angka bulat tanpa titik. Contoh: 15000.
- *
- *  Saat ini hanya ada SATU produk, jadi tidak ada pilihan varian
- *  di form (otomatis terpilih). Ingin menambah varian di kemudian hari?
- *  Ubah `product` menjadi array dan kembalikan pemilih varian di OrderForm.
  */
 
-export const product = {
-  id: 'kalamoy-original-caramel',
-  name: 'Original Caramel',
-  description: 'Quesillo karamel original: manis, lembut, dan lumer di setiap suapan.',
-  price: 15000,
+export interface Product {
+  id: string
+  name: string
+  variantLabel: string
+  tagline: string
+  description: string
+  suitability: string
+  price: number
 }
+
+export const products: Product[] = [
+  {
+    id: 'kalamoy-original-sweet',
+    name: 'Original Sweet Caramel',
+    variantLabel: 'Original Sweet',
+    tagline: 'Manis Lembut & Creamy',
+    description:
+      'Quesillo klasik dengan saus karamel manis lembut, tekstur lumer seperti sutra, dan creamy di setiap suapan.',
+    suitability: 'Cocok untuk pecinta dessert manis klasik & kamu yang baru pertama kali mencoba Quesillo.',
+    price: 15000,
+  },
+  {
+    id: 'kalamoy-bittersweet',
+    name: 'Classic Bittersweet Caramel',
+    variantLabel: 'Bittersweet (Roasted)',
+    tagline: 'Aroma Panggang & Pahit Tipis',
+    description:
+      'Karamel gaya otentik dengan aroma panggang khas dan sentuhan pahit tipis elegan penyeimbang rasa manis custard susu.',
+    suitability: 'Cocok untuk penikmat karamel otentik (Crème Caramel / Flan) yang suka rasa lebih berkarakter dan tidak enek.',
+    price: 15000,
+  },
+]
+
+/** Default produk pertama (untuk kompatibilitas) */
+export const product = products[0]
 
 export const productInfo = {
   unitName: 'pcs',
@@ -54,8 +79,6 @@ export const fulfillmentOptions: FulfillmentOption[] = [
     id: 'delivery',
     label: 'Diantar',
     shortLabel: 'Diantar',
-    // Biasanya diantar oleh teman sendiri, jadi default tanpa ongkir.
-    // Kalau mau menarik ongkir, ubah angka ini (mis. 5000).
     fee: 0,
     hint: 'Khusus area Surabaya & kenalan Kalamoy. Dikonfirmasi dulu sebelum pembayaran.',
     requiresConfirmation: true,
