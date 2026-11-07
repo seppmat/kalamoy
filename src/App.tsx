@@ -21,6 +21,10 @@ type Step = 'form' | 'payment'
 const initialValues: FormValues = {
   name: '',
   phone: '',
+  items: {
+    [products[0].id]: 1,
+    [products[1].id]: 0,
+  },
   productId: products[0].id,
   quantity: 1,
   fulfillmentId: defaultFulfillmentId,

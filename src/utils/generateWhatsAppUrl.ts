@@ -29,6 +29,18 @@ export interface DeliveryRequestPayload {
   order: OrderCalc
 }
 
+function formatOrderItemsList(order: OrderCalc): string {
+  if (order.items.length === 0) {
+    return `${order.product.name} — ${order.quantity} ${productInfo.unitName}`
+  }
+  return order.items
+    .map(
+      (it) =>
+        `  • ${it.product.name}: ${it.quantity} ${productInfo.unitName} × ${formatCurrency(it.unitPrice)} = ${formatCurrency(it.subtotal)}`,
+    )
+    .join('\n')
+}
+
 /** Pesan pengajuan antar: dikirim SEBELUM pelanggan membayar. */
 export function generateDeliveryRequestMessage(p: DeliveryRequestPayload): string {
   const { order } = p
@@ -39,7 +51,8 @@ export function generateDeliveryRequestMessage(p: DeliveryRequestPayload): strin
     `*No. Pesanan:* ${p.orderRef}`,
     `*Nama:* ${p.name.trim()}`,
     `*WhatsApp:* +${p.phone}`,
-    `*Pesanan:* ${order.product.name} — ${order.quantity} ${productInfo.unitName} × ${formatCurrency(order.unitPrice)}`,
+    `*Rincian Pesanan:* (${order.totalQuantity} ${productInfo.unitName} total)`,
+    formatOrderItemsList(order),
     `*Ongkir:* ${formatFee(order.deliveryFee)}`,
     `*Total:* ${formatCurrency(order.total)}`,
     `*Alamat (area Surabaya):* ${p.address.trim()}`,
@@ -66,7 +79,8 @@ export function generatePaymentConfirmMessage(p: PaymentConfirmPayload): string 
     `*No. Pesanan:* ${p.orderRef}`,
     `*Nama:* ${p.name.trim()}`,
     `*WhatsApp:* +${p.phone}`,
-    `*Pesanan:* ${order.product.name} — ${order.quantity} ${productInfo.unitName} × ${formatCurrency(order.unitPrice)}`,
+    `*Rincian Pesanan:* (${order.totalQuantity} ${productInfo.unitName} total)`,
+    formatOrderItemsList(order),
     `*Total:* ${formatCurrency(order.total)}`,
     '',
     '📎 *Nota & bukti transfer terlampir di chat ini.*',

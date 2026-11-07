@@ -1,5 +1,15 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { ArrowRight, Bike, Check, Info, MapPin, Minus, Plus, Store, User } from 'lucide-react'
+import {
+  ArrowRight,
+  Bike,
+  Info,
+  MapPin,
+  Minus,
+  Plus,
+  ShoppingBag,
+  Store,
+  User,
+} from 'lucide-react'
 import { deliveryRules, fulfillmentOptions, products, productInfo } from '../data/products'
 import { formatCurrency } from '../utils/formatCurrency'
 import type { FormValues, OrderCalc } from '../utils/order'
@@ -26,6 +36,24 @@ export default function OrderForm({ values, order, onChange, onSubmit }: OrderFo
   function update(patch: Partial<FormValues>) {
     onChange(patch)
     if (attempted) setErrors(validateForm({ ...values, ...patch }))
+  }
+
+  function handleItemQuantityChange(productId: string, newQty: number) {
+    const nextItems = { ...(values.items || {}) }
+    const validQty = Math.max(0, Math.floor(newQty))
+
+    // Hitung total dari produk lain
+    const otherQtyTotal = Object.entries(nextItems)
+      .filter(([id]) => id !== productId)
+      .reduce((sum, [, q]) => sum + q, 0)
+
+    if (otherQtyTotal + validQty > productInfo.maxQuantity) {
+      nextItems[productId] = Math.max(0, productInfo.maxQuantity - otherQtyTotal)
+    } else {
+      nextItems[productId] = validQty
+    }
+
+    update({ items: nextItems })
   }
 
   function handleSubmit(e: FormEvent) {
@@ -122,43 +150,38 @@ export default function OrderForm({ values, order, onChange, onSubmit }: OrderFo
         )}
       </div>
 
-      {/* Pilihan Varian Rasa Karamel */}
+      {/* Pilihan Varian & Keranjang Pesanan */}
       <div>
         <div className="mb-2 flex items-center justify-between">
           <p id="variant-label" className="text-sm font-semibold">
-            Pilihan Varian Rasa <span className="text-caramel">*</span>
+            Pilihan Varian &amp; Jumlah <span className="text-caramel">*</span>
           </p>
-          <span className="text-xs text-muted">Pilih sesuai seleramu</span>
+          <span className="text-xs text-muted">Bisa pesan lebih dari 1 rasa</span>
         </div>
 
-        <div role="radiogroup" aria-labelledby="variant-label" className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           {products.map((p) => {
-            const isSelected = (values.productId || products[0].id) === p.id
+            const itemQty =
+              values.items?.[p.id] ?? (values.productId === p.id ? values.quantity || 0 : 0)
+            const isSelected = itemQty > 0
+
             return (
-              <button
+              <div
                 key={p.id}
-                type="button"
-                role="radio"
-                aria-checked={isSelected}
-                onClick={() => update({ productId: p.id })}
-                className={`relative flex flex-col justify-between rounded-2xl border p-4 text-left transition-all ${
+                className={`relative flex flex-col justify-between rounded-2xl border p-4 transition-all ${
                   isSelected
                     ? 'border-caramel bg-[#FBF1E6] shadow-soft ring-2 ring-caramel/40'
-                    : 'border-line bg-card hover:border-toffee/60 hover:bg-sand/30'
+                    : 'border-line bg-card hover:border-toffee/60'
                 }`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <span
-                      aria-hidden="true"
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors ${
-                        isSelected ? 'bg-caramel text-card' : 'border border-line bg-card'
-                      }`}
-                    >
-                      {isSelected && <Check className="h-3 w-3" strokeWidth={3} />}
-                    </span>
                     <span className="rounded-full bg-honey/60 px-2.5 py-0.5 text-[10px] font-semibold text-ink">
                       {p.tagline}
+                    </span>
+                    <span className="whitespace-nowrap text-xs font-semibold text-caramel">
+                      {formatCurrency(p.price)}
+                      <span className="text-[11px] font-normal text-muted"> /{productInfo.unitName}</span>
                     </span>
                   </div>
 
@@ -166,56 +189,98 @@ export default function OrderForm({ values, order, onChange, onSubmit }: OrderFo
                   <p className="mt-1 text-xs leading-relaxed text-muted">{p.description}</p>
                 </div>
 
-                <div className="mt-3 border-t border-line/60 pt-2.5">
+                <div className="mt-3 border-t border-line/60 pt-3">
                   <p className="text-[11px] leading-snug text-caramel/90">
                     💡 <span className="font-medium">{p.suitability}</span>
                   </p>
-                  <p className="mt-1.5 text-xs font-semibold text-ink">
-                    {formatCurrency(p.price)}
-                    <span className="text-[11px] font-normal text-muted"> /{productInfo.unitName}</span>
-                  </p>
+
+                  {/* Tombol Tambah / Stepper */}
+                  <div className="mt-3">
+                    {itemQty === 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => handleItemQuantityChange(p.id, 1)}
+                        className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-caramel/50 bg-card py-2 text-xs font-semibold text-caramel transition hover:bg-caramel hover:text-card active:scale-95"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Tambah ke Pesanan
+                      </button>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-caramel">
+                          {formatCurrency(p.price * itemQty)}
+                        </span>
+                        <div className="inline-flex items-center rounded-xl border border-line bg-card p-1">
+                          <button
+                            type="button"
+                            onClick={() => handleItemQuantityChange(p.id, itemQty - 1)}
+                            aria-label={`Kurangi ${p.name}`}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FBEAE0] text-caramel transition active:scale-90 hover:bg-[#F6DDCE]"
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="w-8 text-center text-sm font-bold tabular-nums text-ink">
+                            {itemQty}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleItemQuantityChange(p.id, itemQty + 1)}
+                            disabled={order.totalQuantity >= productInfo.maxQuantity}
+                            aria-label={`Tambah ${p.name}`}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FBEAE0] text-caramel transition active:scale-90 hover:bg-[#F6DDCE] disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </button>
+              </div>
             )
           })}
         </div>
-      </div>
 
-      {/* Jumlah */}
-      <div>
-        <p id="qty-label" className="mb-2 text-sm font-semibold">
-          Jumlah Pesanan ({productInfo.unitName}) <span className="text-caramel">*</span>
-        </p>
-        <div className="flex items-center gap-4">
-          <div
-            role="group"
-            aria-labelledby="qty-label"
-            className="inline-flex shrink-0 items-center rounded-2xl border border-line bg-card p-1.5"
-          >
-            <button
-              type="button"
-              onClick={() => update({ quantity: Math.max(1, values.quantity - 1) })}
-              disabled={values.quantity <= 1}
-              aria-label="Kurangi jumlah"
-              className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#FBEAE0] text-caramel transition active:scale-90 hover:bg-[#F6DDCE] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Minus className="h-5 w-5" aria-hidden="true" />
-            </button>
-            <output aria-live="polite" className="w-12 text-center text-lg font-semibold tabular-nums">
-              {values.quantity}
-            </output>
-            <button
-              type="button"
-              onClick={() => update({ quantity: Math.min(productInfo.maxQuantity, values.quantity + 1) })}
-              disabled={values.quantity >= productInfo.maxQuantity}
-              aria-label="Tambah jumlah"
-              className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#FBEAE0] text-caramel transition active:scale-90 hover:bg-[#F6DDCE] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Plus className="h-5 w-5" aria-hidden="true" />
-            </button>
+        {/* Ringkasan Keranjang Pesanan */}
+        <div className="mt-3.5 rounded-2xl border border-honey/80 bg-[#FBF4E8] p-4 text-xs">
+          <div className="flex items-center justify-between font-semibold text-caramel">
+            <span className="flex items-center gap-1.5 text-sm font-bold">
+              <ShoppingBag className="h-4 w-4" />
+              Keranjang Pesanan ({order.totalQuantity} {productInfo.unitName})
+            </span>
+            {order.totalQuantity > 0 && (
+              <span className="text-sm font-bold text-ink">
+                Subtotal: {formatCurrency(order.subtotal)}
+              </span>
+            )}
           </div>
-          <p className="text-xs leading-snug text-muted">{productInfo.quantityHint}</p>
+
+          {order.totalQuantity === 0 ? (
+            <p className="mt-2 text-muted">
+              Keranjangmu masih kosong. Silakan tekan tombol <strong>+ Tambah ke Pesanan</strong> pada varian di atas.
+            </p>
+          ) : (
+            <div className="mt-2.5 space-y-1.5">
+              {order.items.map((it) => (
+                <div key={it.product.id} className="flex items-center justify-between text-ink">
+                  <span>
+                    🍮 {it.product.name} × {it.quantity} {productInfo.unitName}
+                  </span>
+                  <span className="font-semibold">{formatCurrency(it.subtotal)}</span>
+                </div>
+              ))}
+              <p className="border-t border-honey/60 pt-2 text-[11px] text-muted">
+                {productInfo.quantityHint} (Maks. {productInfo.maxQuantity} {productInfo.unitName} per pemesanan)
+              </p>
+            </div>
+          )}
         </div>
+
+        {errors.items && (
+          <p id="items-error" role="alert" className="mt-2 text-sm font-semibold text-red-600">
+            {errors.items}
+          </p>
+        )}
       </div>
 
       {/* Pengambilan */}
@@ -357,7 +422,7 @@ export default function OrderForm({ values, order, onChange, onSubmit }: OrderFo
       {/* Total ringkas untuk layar kecil — ringkasan lengkap tampil di samping pada layar lebar */}
       <div className="flex items-center justify-between rounded-2xl bg-sand/70 px-4 py-3 lg:hidden">
         <span className="text-sm text-muted">
-          {order.quantity} {productInfo.unitName} · total sementara
+          {order.totalQuantity} {productInfo.unitName} · total sementara
         </span>
         <span key={order.total} className="animate-pop font-serif text-xl font-bold text-caramel">
           {formatCurrency(order.total)}
@@ -365,8 +430,16 @@ export default function OrderForm({ values, order, onChange, onSubmit }: OrderFo
       </div>
 
       <div>
-        <button type="submit" className="btn-primary w-full">
-          {needsConfirmation ? 'Lanjut & Ajukan Pengantaran' : 'Lanjut ke Pembayaran'}
+        <button
+          type="submit"
+          disabled={order.totalQuantity < 1}
+          className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {order.totalQuantity < 1
+            ? 'Pilih Minimal 1 Varian di Atas'
+            : needsConfirmation
+              ? 'Lanjut & Ajukan Pengantaran'
+              : 'Lanjut ke Pembayaran'}
           <ArrowRight className="h-5 w-5" aria-hidden="true" />
         </button>
         <p className="mt-3 text-center text-xs text-muted">

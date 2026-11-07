@@ -1,11 +1,12 @@
-import { deliveryRules } from '../data/products'
-import type { FormValues } from './order'
+import { deliveryRules, productInfo } from '../data/products'
+import { buildOrder, type FormValues } from './order'
 
 export interface FormErrors {
   name?: string
   phone?: string
   area?: string
   address?: string
+  items?: string
 }
 
 /**
@@ -28,6 +29,14 @@ export function normalizeIndonesianPhone(input: string): string | null {
 
 export function validateForm(values: FormValues): FormErrors {
   const errors: FormErrors = {}
+
+  // Validasi Keranjang
+  const order = buildOrder(values)
+  if (order.totalQuantity < 1) {
+    errors.items = 'Pilih minimal 1 pcs varian Kalamoy untuk dipesan.'
+  } else if (order.totalQuantity > productInfo.maxQuantity) {
+    errors.items = `Maksimal total pemesanan adalah ${productInfo.maxQuantity} ${productInfo.unitName}.`
+  }
 
   const name = values.name.trim()
   if (!name) errors.name = 'Nama lengkap wajib diisi ya.'

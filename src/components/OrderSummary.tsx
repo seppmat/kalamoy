@@ -50,15 +50,29 @@ export default function OrderSummary({ order, customer }: OrderSummaryProps) {
       )}
 
       <div className="mt-5 space-y-3 border-t border-line pt-5 text-sm">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="font-semibold">{product.name}</p>
-            <p className="text-xs text-muted">
-              {quantity} {productInfo.unitName} × {formatCurrency(unitPrice)}
-            </p>
+        {order.items && order.items.length > 0 ? (
+          order.items.map((item) => (
+            <div key={item.product.id} className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-semibold text-ink">{item.product.name}</p>
+                <p className="text-xs text-muted">
+                  {item.quantity} {productInfo.unitName} × {formatCurrency(item.unitPrice)}
+                </p>
+              </div>
+              <p className="font-semibold text-ink">{formatCurrency(item.subtotal)}</p>
+            </div>
+          ))
+        ) : (
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-semibold text-ink">{product.name}</p>
+              <p className="text-xs text-muted">
+                {quantity} {productInfo.unitName} × {formatCurrency(unitPrice)}
+              </p>
+            </div>
+            <p className="font-semibold text-ink">{formatCurrency(subtotal)}</p>
           </div>
-          <p className="font-semibold">{formatCurrency(subtotal)}</p>
-        </div>
+        )}
 
         <div className="flex justify-between gap-4 text-muted">
           <span>{fulfillment.label}</span>

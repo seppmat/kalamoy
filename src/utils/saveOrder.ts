@@ -30,13 +30,19 @@ export function saveOrder(event: OrderEvent, values: FormValues, orderRef: strin
     name: values.name.trim(),
     phone,
     productId: order.product.id,
-    productName: order.product.name,
-    quantity: order.quantity,
+    productName: order.itemsSummary,
+    quantity: order.totalQuantity,
     fulfillmentId: order.fulfillment.id,
     area: isDelivery ? values.area : '',
     address: isDelivery ? values.address.trim() : '',
     note: values.note.trim(),
     website: values.website,
+    items: order.items.map((it) => ({
+      id: it.product.id,
+      name: it.product.name,
+      quantity: it.quantity,
+      subtotal: it.subtotal,
+    })),
   }
 
   try {

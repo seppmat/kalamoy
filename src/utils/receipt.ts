@@ -11,12 +11,20 @@ import type { OrderCalc } from './order'
  * "Menunggu verifikasi". Penjual yang memastikan pembayaran masuk, lalu mengonfirmasi lewat WhatsApp.
  * (Nota yang bisa membuat tulisan "LUNAS" sendiri akan sangat mudah dipalsukan.)
  */
+export interface ReceiptItem {
+  productName: string
+  quantity: number
+  unitPrice: number
+  subtotal: number
+}
+
 export interface ReceiptData {
   orderRef: string
   createdAt: Date
   name: string
   /** Nomor dinormalkan tanpa +, mis. "6281234567890" */
   phone: string
+  items: ReceiptItem[]
   productName: string
   quantity: number
   unitPrice: number
@@ -38,14 +46,32 @@ export function buildReceiptData(args: {
   createdAt: Date
 }): ReceiptData {
   const { order } = args
+  const receiptItems =
+    order.items.length > 0
+      ? order.items.map((it) => ({
+          productName: it.product.name,
+          quantity: it.quantity,
+          unitPrice: it.unitPrice,
+          subtotal: it.subtotal,
+        }))
+      : [
+          {
+            productName: order.product.name,
+            quantity: order.quantity,
+            unitPrice: order.unitPrice,
+            subtotal: order.subtotal,
+          },
+        ]
+
   return {
     orderRef: args.orderRef,
     createdAt: args.createdAt,
     name: args.name,
     phone: args.phone,
-    productName: order.product.name,
-    quantity: order.quantity,
-    unitPrice: order.unitPrice,
+    items: receiptItems,
+    productName: order.itemsSummary || order.product.name,
+    quantity: order.totalQuantity || order.quantity,
+    unitPrice: order.items[0]?.unitPrice ?? order.unitPrice,
     subtotal: order.subtotal,
     fulfillmentLabel: order.fulfillment.label,
     deliveryFee: order.deliveryFee,
@@ -213,21 +239,40 @@ function paint(ctx: Ctx, d: ReceiptData, H: number): number {
   dashed(y)
   y += 36
 
-  // ---- Item ----
-  ctx.textAlign = 'left'
-  ctx.fillStyle = C.ink
-  ctx.font = `700 18px ${SANS}`
-  const nameLines = wrap(ctx, d.productName, 380)
-  nameLines.forEach((l, i) => ctx.fillText(l, CONTENT_X, y + i * 24))
-  ctx.textAlign = 'right'
-  ctx.fillText(formatCurrency(d.subtotal), CONTENT_R, y)
-  y += nameLines.length * 24 - 2
+  // ---- Daftar Item Keranjang ----
+  const itemsToPaint =
+    d.items && d.items.length > 0
+      ? d.items
+      : [
+          {
+            productName: d.productName,
+            quantity: d.quantity,
+            unitPrice: d.unitPrice,
+            subtotal: d.subtotal,
+          },
+        ]
 
-  ctx.textAlign = 'left'
-  ctx.fillStyle = C.muted
-  ctx.font = `400 15px ${SANS}`
-  ctx.fillText(`${d.quantity} ${productInfo.unitName} × ${formatCurrency(d.unitPrice)}`, CONTENT_X, y)
-  y += 34
+  itemsToPaint.forEach((item) => {
+    ctx.textAlign = 'left'
+    ctx.fillStyle = C.ink
+    ctx.font = `700 17px ${SANS}`
+    const nameLines = wrap(ctx, item.productName, 380)
+    nameLines.forEach((l, i) => ctx.fillText(l, CONTENT_X, y + i * 23))
+    ctx.textAlign = 'right'
+    ctx.fillText(formatCurrency(item.subtotal), CONTENT_R, y)
+    y += nameLines.length * 23 - 2
+
+    ctx.textAlign = 'left'
+    ctx.fillStyle = C.muted
+    ctx.font = `400 14px ${SANS}`
+    ctx.fillText(
+      `${item.quantity} ${productInfo.unitName} × ${formatCurrency(item.unitPrice)}`,
+      CONTENT_X,
+      y,
+    )
+    y += 28
+  })
+  y += 6
 
   row('Sendok', 'Gratis')
   row('Pengambilan', fulfillmentText(d))
